@@ -17,12 +17,13 @@ class Twalert
 		tweets = []
 		tweet = ""
 		members.each do |u|
-			tweet = (tweet + "@#{u.name} ")
-			if (tweet.length + body.length) > TWEET_LENGTH then
+			username = "@#{u.username} "
+			if (tweet.length + username.length + body.length) > TWEET_LENGTH then
 					p "tweet ##{tweets.length + 1}: #{tweet + body}"
 					tweets.push(tweet + body)
 					tweet = ""
 			end
+			tweet = (tweet + username)
 		end
 		if tweet.length > 0 then
 			tweets.push(tweet + body)
@@ -36,7 +37,7 @@ class Twalert
 			# get follower of dokyogames who is in list 'title'
 			members = @@client.list_members(@@config["user"], title)
 			# create message contains @ mention of above list
-			self.devide_member_within_a_tweet(members, alert_cf["alert message"] % title).each do |tw|
+			self.devide_member_within_a_tweet(members, alert_cf["alert message"] % [title, Time.now.to_s]).each do |tw|
 				# and tweet.
 				@@client.update(tw)
 			end
