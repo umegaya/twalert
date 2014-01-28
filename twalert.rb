@@ -10,8 +10,34 @@ class Twalert
 		c.access_token_secret = @@config["oauth_token_secret"]
 	end
 
+	class NewrelicParser
+		def initialize(req)
+			@request = req
+		end
+		def parse_appname()
+			@request.body.rewind
+        		buf = @request.body.read
+        		p "buf = #{buf}"
+        		if buf =~ /alert\s*=\s*(.*)$/ then
+                		data = JSON.parse URI.decode $1
+                		p "json = #{data}"
+				return data["application_name"]
+        		end
+			return nil	
+		end
+	end
+
+	def self.get_parser_from_request(request)
+		return NewrelicParser.new(request)
+	end
+
 	def self.get_title_from_request(request, cf)
-		return "caravan-heroes"
+		parser = self.get_parser_from_request request
+		appname = parser.parse_appname()
+		if appname == 'Application name' then ## test
+			appname = "caravan-heroes"
+		end
+		return cf[appname] ? appname : nil
 	end
 	def self.devide_member_within_a_tweet(members, body)
 		tweets = []
@@ -30,7 +56,7 @@ class Twalert
 		end
 		return tweets
 	end
-	def self.alert(request, detail = nil)
+	def self.alert(request)
 		alert_cf = JSON.parse File.open("./settings/alert.json").read
 		title = self.get_title_from_request request, alert_cf["lists"]
 		if title then
