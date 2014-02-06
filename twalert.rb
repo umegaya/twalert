@@ -21,7 +21,7 @@ class Twalert
         		if buf =~ /alert\s*=\s*(.*)$/ then
                 		data = JSON.parse URI.decode $1
                 		p "json = #{data}"
-				return data["application_name"]
+				return data["alert_policy_name"]
         		end
 			return nil	
 		end
