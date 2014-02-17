@@ -14,16 +14,16 @@ class Twalert
 		def initialize(req)
 			@request = req
 		end
-		def parse_appname()
+		def parse()
 			@request.body.rewind
         		buf = @request.body.read
         		p "buf = #{buf}"
         		if buf =~ /alert\s*=\s*(.*)$/ then
                 		data = JSON.parse URI.decode $1
                 		p "json = #{data}"
-				return data["alert_policy_name"]
+				return {:name => (data["alert_policy_name"] or data["application_name"]), :msg => data["short_description"]}
         		end
-			return nil	
+			return {:name => 'not found', :msg => ''}	
 		end
 	end
 
@@ -31,13 +31,13 @@ class Twalert
 		return NewrelicParser.new(request)
 	end
 
-	def self.get_title_from_request(request, cf)
+	def self.get_alert_from_request(request, cf)
 		parser = self.get_parser_from_request request
-		appname = parser.parse_appname()
-		if appname == 'Application name' then ## test
-			appname = "caravan-heroes"
+		a = parser.parse()
+		if a[:name] == 'Application name' then ## test
+			a[:name] = "caravan-heroes"
 		end
-		return cf[appname] ? appname : nil
+		return cf[a[:name]] ? a : nil
 	end
 	def self.devide_member_within_a_tweet(members, body)
 		tweets = []
@@ -58,12 +58,12 @@ class Twalert
 	end
 	def self.alert(request)
 		alert_cf = JSON.parse File.open("./settings/alert.json").read
-		title = self.get_title_from_request request, alert_cf["lists"]
-		if title then
+		a = self.get_alert_from_request request, alert_cf["lists"]
+		if a then
 			# get follower of dokyogames who is in list 'title'
-			members = @@client.list_members(@@config["user"], title)
+			members = @@client.list_members(@@config["user"], a[:name])
 			# create message contains @ mention of above list
-			self.devide_member_within_a_tweet(members, alert_cf["alert message"] % [title, Time.now.to_s]).each do |tw|
+			self.devide_member_within_a_tweet(members, alert_cf["alert message"] % [a[:name], a[:msg], Time.now.to_s]).each do |tw|
 				# and tweet.
 				@@client.update(tw)
 			end
